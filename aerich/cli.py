@@ -2,7 +2,7 @@ import asyncio
 import os
 from functools import wraps
 from pathlib import Path
-from typing import List
+from typing import Dict, List, cast
 
 import click
 import tomlkit
@@ -23,7 +23,7 @@ CONFIG_DEFAULT_VALUES = {
 
 def coro(f):
     @wraps(f)
-    def wrapper(*args, **kwargs):
+    def wrapper(*args, **kwargs) -> None:
         loop = asyncio.get_event_loop()
 
         # Close db connections at the end of all but the cli group function
@@ -48,7 +48,7 @@ def coro(f):
 @click.option("--app", required=False, help="Tortoise-ORM app name.")
 @click.pass_context
 @coro
-async def cli(ctx: Context, config, app):
+async def cli(ctx: Context, config, app) -> None:
     ctx.ensure_object(dict)
     ctx.obj["config_file"] = config
 
@@ -58,9 +58,9 @@ async def cli(ctx: Context, config, app):
         if not config_path.exists():
             raise UsageError("You must exec init first", ctx=ctx)
         content = config_path.read_text()
-        doc = tomlkit.parse(content)
+        doc: dict = tomlkit.parse(content)
         try:
-            tool = doc["tool"]["aerich"]
+            tool = cast(Dict[str, str], doc["tool"]["aerich"])
             location = tool["location"]
             tortoise_orm = tool["tortoise_orm"]
             src_folder = tool.get("src_folder", CONFIG_DEFAULT_VALUES["src_folder"])
@@ -68,7 +68,9 @@ async def cli(ctx: Context, config, app):
             raise UsageError("You need run aerich init again when upgrade to 0.6.0+")
         add_src_path(src_folder)
         tortoise_config = get_tortoise_config(ctx, tortoise_orm)
-        app = app or list(tortoise_config.get("apps").keys())[0]
+        if not app:
+            apps_config = cast(dict, tortoise_config.get("apps"))
+            app = list(apps_config.keys())[0]
         command = Command(tortoise_config=tortoise_config, app=app, location=location)
         ctx.obj["command"] = command
         if invoked_subcommand != "init-db":
@@ -82,7 +84,7 @@ async def cli(ctx: Context, config, app):
 @click.option("--empty", default=False, is_flag=True, help="Generate empty migration file.")
 @click.pass_context
 @coro
-async def migrate(ctx: Context, name):
+async def migrate(ctx: Context, name) -> None:
     command = ctx.obj["command"]
     ret = await command.migrate(name)
     if not ret:
@@ -100,7 +102,7 @@ async def migrate(ctx: Context, name):
 )
 @click.pass_context
 @coro
-async def upgrade(ctx: Context, in_transaction: bool):
+async def upgrade(ctx: Context, in_transaction: bool) -> None:
     command = ctx.obj["command"]
     migrated = await command.upgrade(run_in_transaction=in_transaction)
     if not migrated:
@@ -132,7 +134,7 @@ async def upgrade(ctx: Context, in_transaction: bool):
     prompt="Downgrade is dangerous, which maybe lose your data, are you sure?",
 )
 @coro
-async def downgrade(ctx: Context, version: int, delete: bool):
+async def downgrade(ctx: Context, version: int, delete: bool) -> None:
     command = ctx.obj["command"]
     try:
         files = await command.downgrade(version, delete)
@@ -145,7 +147,7 @@ async def downgrade(ctx: Context, version: int, delete: bool):
 @cli.command(help="Show current available heads in migrate location.")
 @click.pass_context
 @coro
-async def heads(ctx: Context):
+async def heads(ctx: Context) -> None:
     command = ctx.obj["command"]
     head_list = await command.heads()
     if not head_list:
@@ -157,7 +159,7 @@ async def heads(ctx: Context):
 @cli.command(help="List all migrate items.")
 @click.pass_context
 @coro
-async def history(ctx: Context):
+async def history(ctx: Context) -> None:
     command = ctx.obj["command"]
     versions = await command.history()
     if not versions:
@@ -188,7 +190,7 @@ async def history(ctx: Context):
 )
 @click.pass_context
 @coro
-async def init(ctx: Context, tortoise_orm, location, src_folder):
+async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     config_file = ctx.obj["config_file"]
 
     if os.path.isabs(src_folder):
@@ -203,9 +205,9 @@ async def init(ctx: Context, tortoise_orm, location, src_folder):
     config_path = Path(config_file)
     if config_path.exists():
         content = config_path.read_text()
-        doc = tomlkit.parse(content)
     else:
-        doc = tomlkit.parse("[tool.aerich]")
+        content = "[tool.aerich]"
+    doc: dict = tomlkit.parse(content)
     table = tomlkit.table()
     table["tortoise_orm"] = tortoise_orm
     table["location"] = location
@@ -232,7 +234,7 @@ async def init(ctx: Context, tortoise_orm, location, src_folder):
 )
 @click.pass_context
 @coro
-async def init_db(ctx: Context, safe: bool):
+async def init_db(ctx: Context, safe: bool) -> None:
     command = ctx.obj["command"]
     app = command.app
     dirname = Path(command.location, app)
@@ -256,13 +258,13 @@ async def init_db(ctx: Context, safe: bool):
 )
 @click.pass_context
 @coro
-async def inspectdb(ctx: Context, table: List[str]):
+async def inspectdb(ctx: Context, table: List[str]) -> None:
     command = ctx.obj["command"]
     ret = await command.inspectdb(table)
     click.secho(ret)
 
 
-def main():
+def main() -> None:
     cli()
 
 
