@@ -66,11 +66,11 @@ class BaseDDL:
             forward_type=db_field_types.get(self.DIALECT) or db_field_types.get(""),
             on_delete=field_describe.get("on_delete"),
             extra=self.schema_generator._table_generate_extra(table=through),
-            comment=self.schema_generator._table_comment_generator(
-                table=through, comment=description
-            )
-            if description
-            else "",
+            comment=(
+                self.schema_generator._table_comment_generator(table=through, comment=description)
+                if description
+                else ""
+            ),
         )
 
     def drop_m2m(self, table_name: str):
@@ -121,13 +121,15 @@ class BaseDDL:
                 field_type=db_field_types.get(self.DIALECT, db_field_types.get("")),
                 nullable="NOT NULL" if not field_describe.get("nullable") else "",
                 unique="UNIQUE" if field_describe.get("unique") else "",
-                comment=self.schema_generator._column_comment_generator(
-                    table=db_table,
-                    column=db_column,
-                    comment=field_describe.get("description"),
-                )
-                if description
-                else "",
+                comment=(
+                    self.schema_generator._column_comment_generator(
+                        table=db_table,
+                        column=db_column,
+                        comment=field_describe.get("description"),
+                    )
+                    if description
+                    else ""
+                ),
                 is_primary_key=is_pk,
                 default=default,
             ),
@@ -151,13 +153,15 @@ class BaseDDL:
                 field_type=db_field_types.get(self.DIALECT) or db_field_types.get(""),
                 nullable="NOT NULL" if not field_describe.get("nullable") else "",
                 unique="",
-                comment=self.schema_generator._column_comment_generator(
-                    table=db_table,
-                    column=field_describe.get("db_column"),
-                    comment=field_describe.get("description"),
-                )
-                if field_describe.get("description")
-                else "",
+                comment=(
+                    self.schema_generator._column_comment_generator(
+                        table=db_table,
+                        column=field_describe.get("db_column"),
+                        comment=field_describe.get("description"),
+                    )
+                    if field_describe.get("description")
+                    else ""
+                ),
                 is_primary_key=is_pk,
                 default=default,
             ),
