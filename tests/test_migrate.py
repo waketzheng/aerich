@@ -2,6 +2,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
+import tortoise
 from pytest_mock import MockerFixture
 
 from aerich.ddl.mysql import MysqlDDL
@@ -776,6 +777,16 @@ old_models_describe = {
 }
 
 
+def should_add_user_id_column_type_alter_sql() -> bool:
+    # tortoise-orm>=0.21 changes IntField constraints
+    # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648,"le": 2147483647}
+    user_id_constraints = old_models_describe["models.Category"]["data_fields"][-1]["constraints"]
+    return (
+        tortoise.__version__ >= "0.21"
+        and tortoise.fields.data.IntField.constraints != user_id_constraints
+    )
+
+
 def test_migrate(mocker: MockerFixture):
     """
     models.py diff with old_models.py
@@ -869,6 +880,10 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `product` MODIFY COLUMN `body` LONGTEXT NOT NULL",
             "ALTER TABLE `email` MODIFY COLUMN `is_primary` BOOL NOT NULL  DEFAULT 0",
         }
+        if should_add_user_id_column_type_alter_sql():
+            sql = "ALTER TABLE `category` MODIFY COLUMN `user_id` INT NOT NULL  COMMENT 'User'"
+            expected_upgrade_operators.add(sql)
+            expected_downgrade_operators.add(sql)
         assert not set(Migrate.upgrade_operators).symmetric_difference(expected_upgrade_operators)
 
         assert not set(Migrate.downgrade_operators).symmetric_difference(
@@ -940,6 +955,10 @@ def test_migrate(mocker: MockerFixture):
             'DROP TABLE IF EXISTS "email_user"',
             'DROP TABLE IF EXISTS "newmodel"',
         }
+        if should_add_user_id_column_type_alter_sql():
+            sql = 'ALTER TABLE "category" ALTER COLUMN "user_id" TYPE INT USING "user_id"::INT'
+            expected_upgrade_operators.add(sql)
+            expected_downgrade_operators.add(sql)
         assert not set(Migrate.upgrade_operators).symmetric_difference(expected_upgrade_operators)
         assert not set(Migrate.downgrade_operators).symmetric_difference(
             expected_downgrade_operators
