@@ -1,11 +1,11 @@
-from typing import List
+from typing import Callable, Dict, List
 
 from aerich.inspectdb import Column, Inspect
 
 
 class InspectSQLite(Inspect):
     @property
-    def field_map(self) -> dict:
+    def field_map(self) -> Dict[str, Callable[..., str]]:
         return {
             "INTEGER": self.int_field,
             "INT": self.bool_field,
@@ -45,7 +45,7 @@ class InspectSQLite(Inspect):
             )
         return columns
 
-    async def _get_columns_index(self, table: str):
+    async def _get_columns_index(self, table: str) -> Dict[str, str]:
         sql = f"PRAGMA index_list ({table})"
         indexes = await self.conn.execute_query_dict(sql)
         ret = {}
