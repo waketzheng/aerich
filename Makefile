@@ -44,4 +44,4 @@ testall: deps _test_all
 build: deps
 	@poetry build
 
-ci: deps _check _testall
+ci: check _testall
