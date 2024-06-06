@@ -473,16 +473,16 @@ class Migrate:
                         _, option, old_new = change
                         if option == "indexed":
                             # change index
-                            unique = new_data_field.get("unique")
                             if old_new[0] is False and old_new[1] is True:
-                                add_or_drop_index = cls._add_index
+                                unique = new_data_field.get("unique")
+                                cls._add_operator(
+                                    cls._add_index(model, (field_name,), unique), upgrade, True
+                                )
                             else:
-                                # For drop case, unique value should get from old data
-                                # TODO: unique = old_data_field.get("unique")
-                                add_or_drop_index = cls._drop_index
-                            cls._add_operator(
-                                add_or_drop_index(model, (field_name,), unique), upgrade, True
-                            )
+                                unique = old_data_field.get("unique")
+                                cls._add_operator(
+                                    cls._drop_index(model, (field_name,), unique), upgrade, True
+                                )
                         elif option == "db_field_types.":
                             if new_data_field.get("field_type") == "DecimalField":
                                 # modify column
