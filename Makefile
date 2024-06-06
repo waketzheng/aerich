@@ -21,7 +21,7 @@ style: deps _style
 
 _check:
 	@black --check $(black_opts) $(checkfiles) || (echo "Please run 'make style' to auto-fix style issues" && false)
-	@ruff $(checkfiles)
+	@ruff check $(checkfiles)
 check: deps _check
 
 test: deps
