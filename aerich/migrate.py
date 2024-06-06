@@ -477,12 +477,13 @@ class Migrate:
                         _, option, old_new = change
                         if option == "indexed":
                             # change index
-                            unique = new_data_field.get("unique")
                             if old_new[0] is False and old_new[1] is True:
+                                unique = new_data_field.get("unique")
                                 cls._add_operator(
                                     cls._add_index(model, (field_name,), unique), upgrade, True
                                 )
                             else:
+                                unique = old_data_field.get("unique")
                                 cls._add_operator(
                                     cls._drop_index(model, (field_name,), unique), upgrade, True
                                 )
