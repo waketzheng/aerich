@@ -135,7 +135,7 @@ class BaseDDL:
                     self.schema_generator._column_comment_generator(
                         table=db_table,
                         column=db_column,
-                        comment=field_describe.get("description"),
+                        comment=description,
                     )
                     if description
                     else ""
