@@ -46,7 +46,7 @@ Commands:
 
 ## Usage
 
-You need add `aerich.models` to your `Tortoise-ORM` config first. Example:
+You need to add `aerich.models` to your `Tortoise-ORM` config first. Example:
 
 ```python
 TORTOISE_ORM = {

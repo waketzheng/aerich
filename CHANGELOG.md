@@ -1,8 +1,17 @@
 # ChangeLog
 
+## 0.8
+
+### 0.8.0
+
+- Fix mysql drop unique index raises OperationalError. (#346)
+
+  **Upgrade note:**
+    1. Use column name as unique key name for mysql
+
 ## 0.7
 
-### 0.7.2
+### [0.7.2] - 2023-07-20
 
 - Support virtual fields.
 - Fix modify multiple times. (#279)
