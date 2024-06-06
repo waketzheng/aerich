@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List, cast
 
 import pytest
 import tortoise
@@ -792,13 +793,13 @@ old_models_describe = {
 
 
 def should_add_user_id_column_type_alter_sql() -> bool:
+    if tortoise.__version__ < "0.21":
+        return False
     # tortoise-orm>=0.21 changes IntField constraints
     # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648,"le": 2147483647}
-    user_id_constraints = old_models_describe["models.Category"]["data_fields"][-1]["constraints"]
-    return (
-        tortoise.__version__ >= "0.21"
-        and tortoise.fields.data.IntField.constraints != user_id_constraints
-    )
+    data_fields = cast(List[dict], old_models_describe["models.Category"]["data_fields"])
+    user_id_constraints = data_fields[-1]["constraints"]
+    return tortoise.fields.data.IntField.constraints != user_id_constraints
 
 
 def test_migrate(mocker: MockerFixture):
@@ -825,6 +826,7 @@ def test_migrate(mocker: MockerFixture):
     if isinstance(Migrate.ddl, SqliteDDL):
         with pytest.raises(NotSupportError):
             Migrate.diff_models(old_models_describe, models_describe)
+        with pytest.raises(NotSupportError):
             Migrate.diff_models(models_describe, old_models_describe, False)
     else:
         Migrate.diff_models(old_models_describe, models_describe)
