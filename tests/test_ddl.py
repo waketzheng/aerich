@@ -14,6 +14,7 @@ def test_create_table():
     `id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
     `slug` VARCHAR(100) NOT NULL,
     `name` VARCHAR(200),
+    `title` VARCHAR(20) NOT NULL,
     `created_at` DATETIME(6) NOT NULL  DEFAULT CURRENT_TIMESTAMP(6),
     `user_id` INT NOT NULL COMMENT 'User',
     CONSTRAINT `fk_category_user_e2e3874c` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE
@@ -27,6 +28,7 @@ def test_create_table():
     "id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     "slug" VARCHAR(100) NOT NULL,
     "name" VARCHAR(200),
+    "title" VARCHAR(20) NOT NULL,
     "created_at" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE /* User */
 )"""
@@ -39,6 +41,7 @@ def test_create_table():
     "id" SERIAL NOT NULL PRIMARY KEY,
     "slug" VARCHAR(100) NOT NULL,
     "name" VARCHAR(200),
+    "title" VARCHAR(20) NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL  DEFAULT CURRENT_TIMESTAMP,
     "user_id" INT NOT NULL REFERENCES "user" ("id") ON DELETE CASCADE
 );

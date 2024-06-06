@@ -44,8 +44,8 @@ old_models_describe = {
                 "python_type": "str",
                 "generated": False,
                 "nullable": False,
-                "unique": True,
-                "indexed": True,
+                "unique": False,
+                "indexed": False,
                 "default": None,
                 "description": None,
                 "docstring": None,
@@ -102,6 +102,21 @@ old_models_describe = {
                 "docstring": None,
                 "constraints": {"ge": 1, "le": 2147483647},
                 "db_field_types": {"": "INT"},
+            },
+            {
+                "name": "title",
+                "field_type": "CharField",
+                "db_column": "title",
+                "python_type": "str",
+                "generated": False,
+                "nullable": False,
+                "unique": True,
+                "indexed": True,
+                "default": None,
+                "description": None,
+                "docstring": None,
+                "constraints": {"max_length": 20},
+                "db_field_types": {"": "VARCHAR(20)"},
             },
         ],
         "fk_fields": [
@@ -786,7 +801,7 @@ def test_migrate(mocker: MockerFixture):
     - drop field: User.avatar
     - add index: Email.email
     - add many to many: Email.users
-    - remove unique: Category.slug
+    - remove unique: Category.title
     - add unique: User.username
     - change column: length User.password
     - add unique_together: (name,type) of Product
@@ -807,9 +822,9 @@ def test_migrate(mocker: MockerFixture):
     Migrate._merge_operators()
     if isinstance(Migrate.ddl, MysqlDDL):
         expected_upgrade_operators = {
-            "ALTER TABLE `category` DROP INDEX `slug`",
             "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200)",
             "ALTER TABLE `category` MODIFY COLUMN `slug` VARCHAR(100) NOT NULL",
+            "ALTER TABLE `category` DROP INDEX `title`",
             "ALTER TABLE `config` ADD `user_id` INT NOT NULL  COMMENT 'User'",
             "ALTER TABLE `config` ADD CONSTRAINT `fk_config_user_17daa970` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE",
             "ALTER TABLE `config` ALTER COLUMN `status` DROP DEFAULT",
@@ -840,9 +855,9 @@ def test_migrate(mocker: MockerFixture):
             "ALTER TABLE `email` MODIFY COLUMN `is_primary` BOOL NOT NULL  DEFAULT 0",
         }
         expected_downgrade_operators = {
-            "ALTER TABLE `category` ADD UNIQUE INDEX `slug` (`slug`)",
             "ALTER TABLE `category` MODIFY COLUMN `name` VARCHAR(200) NOT NULL",
             "ALTER TABLE `category` MODIFY COLUMN `slug` VARCHAR(200) NOT NULL",
+            "ALTER TABLE `category` ADD UNIQUE INDEX `title` (`title`)",
             "ALTER TABLE `config` DROP COLUMN `user_id`",
             "ALTER TABLE `config` DROP FOREIGN KEY `fk_config_user_17daa970`",
             "ALTER TABLE `config` ALTER COLUMN `status` SET DEFAULT 1",
@@ -880,7 +895,7 @@ def test_migrate(mocker: MockerFixture):
 
     elif isinstance(Migrate.ddl, PostgresDDL):
         expected_upgrade_operators = {
-            'DROP INDEX "uid_category_slug_e9bcff"',
+            'DROP INDEX "uid_category_title_f7fc03"',
             'ALTER TABLE "category" ALTER COLUMN "name" DROP NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(100) USING "slug"::VARCHAR(100)',
             'ALTER TABLE "category" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
@@ -913,7 +928,7 @@ def test_migrate(mocker: MockerFixture):
             'CREATE UNIQUE INDEX "uid_user_usernam_9987ab" ON "user" ("username")',
         }
         expected_downgrade_operators = {
-            'CREATE UNIQUE INDEX "uid_category_slug_e9bcff" ON "category" ("slug")',
+            'CREATE UNIQUE INDEX "uid_category_title_f7fc03" ON "category" ("title")',
             'ALTER TABLE "category" ALTER COLUMN "name" SET NOT NULL',
             'ALTER TABLE "category" ALTER COLUMN "slug" TYPE VARCHAR(200) USING "slug"::VARCHAR(200)',
             'ALTER TABLE "category" ALTER COLUMN "created_at" TYPE TIMESTAMPTZ USING "created_at"::TIMESTAMPTZ',
