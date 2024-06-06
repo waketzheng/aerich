@@ -35,6 +35,9 @@ jobs:
         run: |
           pip install -U pip poetry
           poetry config virtualenvs.create false
+      - name: Install Dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: make deps
       - name: CI
         env:
           MYSQL_PASS: root
@@ -43,4 +46,4 @@ jobs:
           POSTGRES_PASS: 123456
           POSTGRES_HOST: 127.0.0.1
           POSTGRES_PORT: 5432
-        run: make ci
+        run: make _ci
