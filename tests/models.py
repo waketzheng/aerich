@@ -48,6 +48,7 @@ class Category(Model):
     slug = fields.CharField(max_length=100)
     name = fields.CharField(max_length=200, null=True, default=default_name)
     user = fields.ForeignKeyField("models.User", description="User")
+    title = fields.CharField(max_length=20, unique=False)
     created_at = fields.DatetimeField(auto_now_add=True)
 
 
