@@ -67,11 +67,11 @@ class BaseDDL:
             forward_type=db_field_types.get(self.DIALECT) or db_field_types.get(""),
             on_delete=field_describe.get("on_delete"),
             extra=self.schema_generator._table_generate_extra(table=through),
-            comment=self.schema_generator._table_comment_generator(
-                table=through, comment=description
-            )
-            if description
-            else "",
+            comment=(
+                self.schema_generator._table_comment_generator(table=through, comment=description)
+                if description
+                else ""
+            ),
         )
 
     def drop_m2m(self, table_name: str) -> str:
@@ -131,13 +131,15 @@ class BaseDDL:
                 field_type=db_field_types.get(self.DIALECT, db_field_types.get("")),
                 nullable="NOT NULL" if not field_describe.get("nullable") else "",
                 unique=unique,
-                comment=self.schema_generator._column_comment_generator(
-                    table=db_table,
-                    column=db_column,
-                    comment=description,
-                )
-                if description
-                else "",
+                comment=(
+                    self.schema_generator._column_comment_generator(
+                        table=db_table,
+                        column=db_column,
+                        comment=field_describe.get("description"),
+                    )
+                    if description
+                    else ""
+                ),
                 is_primary_key=is_pk,
                 default=default,
             ),

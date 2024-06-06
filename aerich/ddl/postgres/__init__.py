@@ -43,7 +43,9 @@ class PostgresDDL(BaseDDL):
         return self._SET_COMMENT_TEMPLATE.format(
             table_name=db_table,
             column=field_describe.get("db_column") or field_describe.get("raw_field"),
-            comment="'{}'".format(field_describe.get("description"))
-            if field_describe.get("description")
-            else "NULL",
+            comment=(
+                "'{}'".format(field_describe.get("description"))
+                if field_describe.get("description")
+                else "NULL"
+            ),
         )
