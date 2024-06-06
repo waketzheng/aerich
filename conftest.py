@@ -1,5 +1,6 @@
 import asyncio
 import os
+from typing import Generator
 
 import pytest
 from tortoise import Tortoise, expand_db_url, generate_schema_for_client
@@ -12,8 +13,9 @@ from aerich.ddl.postgres import PostgresDDL
 from aerich.ddl.sqlite import SqliteDDL
 from aerich.migrate import Migrate
 
-db_url = os.getenv("TEST_DB", "sqlite://:memory:")
-db_url_second = os.getenv("TEST_DB_SECOND", "sqlite://:memory:")
+MEMORY_SQLITE = "sqlite://:memory:"
+db_url = os.getenv("TEST_DB", MEMORY_SQLITE)
+db_url_second = os.getenv("TEST_DB_SECOND", MEMORY_SQLITE)
 tortoise_orm = {
     "connections": {
         "default": expand_db_url(db_url, True),
@@ -27,7 +29,7 @@ tortoise_orm = {
 
 
 @pytest.fixture(scope="function", autouse=True)
-def reset_migrate():
+def reset_migrate() -> None:
     Migrate.upgrade_operators = []
     Migrate.downgrade_operators = []
     Migrate._upgrade_fk_m2m_index_operators = []
@@ -37,20 +39,20 @@ def reset_migrate():
 
 
 @pytest.fixture(scope="session")
-def event_loop():
+def event_loop() -> Generator:
     policy = asyncio.get_event_loop_policy()
     res = policy.new_event_loop()
     asyncio.set_event_loop(res)
-    res._close = res.close
-    res.close = lambda: None
+    res._close = res.close  # type:ignore[attr-defined]
+    res.close = lambda: None  # type:ignore[method-assign]
 
     yield res
 
-    res._close()
+    res._close()  # type:ignore[attr-defined]
 
 
 @pytest.fixture(scope="session", autouse=True)
-async def initialize_tests(event_loop, request):
+async def initialize_tests(event_loop, request) -> None:
     await Tortoise.init(config=tortoise_orm, _create_db=True)
     await generate_schema_for_client(Tortoise.get_connection("default"), safe=True)
 
