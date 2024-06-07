@@ -2,7 +2,7 @@
 
 ## 0.8
 
-### 0.8.0
+### 0.8.0 (unreleased)
 
 - Fix mysql drop unique index raises OperationalError. (#346)
 
@@ -12,7 +12,7 @@
 
 ## 0.7
 
-### [0.7.2] - 2023-07-20
+### [0.7.2](../../releases/tag/v0.7.2) - 2023-07-20
 
 - Support virtual fields.
 - Fix modify multiple times. (#279)
