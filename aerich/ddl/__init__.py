@@ -149,6 +149,7 @@ class BaseDDL:
         return self._DROP_COLUMN_TEMPLATE.format(
             table_name=model._meta.db_table, column_name=column_name
         )
+
     def modify_column(self, model: "Type[Model]", field_describe: dict, is_pk: bool = False) -> str:
         return self._add_or_modify_column(model, field_describe, is_pk, modify=True)
 
