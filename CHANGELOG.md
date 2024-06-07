@@ -1,6 +1,6 @@
-# ChangeLog
+# Change Log
 
-## [v0.7.2] - 2024-05-08
+## [unreleased]
 
 ### 0.8.0
 
@@ -10,7 +10,7 @@
     1. Use column name as unique key name for mysql
     2. Drop support for Python3.7
 
-## 0.7
+## [v0.7.2] - 2024-05-08
 
 ### [0.7.2] - 2023-07-20
 
