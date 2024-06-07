@@ -56,7 +56,7 @@ from information_schema.constraint_column_usage const
          right join information_schema.columns c using (column_name, table_catalog, table_schema, table_name)
 where c.table_catalog = $1
   and c.table_name = $2
-  and c.table_schema = $3"""
+  and c.table_schema = $3"""  # nosec:B608
         ret = await self.conn.execute_query_dict(sql, [self.database, table, self.schema])
         for row in ret:
             columns.append(
