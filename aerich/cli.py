@@ -64,9 +64,9 @@ async def cli(ctx: Context, config, app) -> None:
 @click.option("--name", default="update", show_default=True, help="Migrate name.")
 @click.option("--empty", default=False, is_flag=True, help="Generate empty migration file.")
 @click.pass_context
-async def migrate(ctx: Context, name) -> None:
+async def migrate(ctx: Context, name, empty) -> None:
     command = ctx.obj["command"]
-    ret = await command.migrate(name)
+    ret = await command.migrate(name, empty)
     if not ret:
         return click.secho("No changes detected", fg=Color.yellow)
     click.secho(f"Success migrate {ret}", fg=Color.green)
