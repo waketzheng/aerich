@@ -1,14 +1,11 @@
-import asyncio
 import os
-from functools import wraps
 from pathlib import Path
 from typing import Dict, List, cast
 
-import click
+import asyncclick as click
 import tomlkit
-from click import Context, UsageError
+from asyncclick import Context, UsageError
 from tomlkit.exceptions import NonExistentKey
-from tortoise import Tortoise
 
 from aerich import Command
 from aerich.enums import Color
@@ -19,21 +16,6 @@ from aerich.version import __version__
 CONFIG_DEFAULT_VALUES = {
     "src_folder": ".",
 }
-
-
-def coro(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs) -> None:
-        loop = asyncio.get_event_loop()
-
-        # Close db connections at the end of all but the cli group function
-        try:
-            loop.run_until_complete(f(*args, **kwargs))
-        finally:
-            if f.__name__ not in ["cli", "init"]:
-                loop.run_until_complete(Tortoise.close_connections())
-
-    return wrapper
 
 
 @click.group(context_settings={"help_option_names": ["-h", "--help"]})
@@ -47,7 +29,6 @@ def coro(f):
 )
 @click.option("--app", required=False, help="Tortoise-ORM app name.")
 @click.pass_context
-@coro
 async def cli(ctx: Context, config, app) -> None:
     ctx.ensure_object(dict)
     ctx.obj["config_file"] = config
@@ -83,7 +64,6 @@ async def cli(ctx: Context, config, app) -> None:
 @click.option("--name", default="update", show_default=True, help="Migrate name.")
 @click.option("--empty", default=False, is_flag=True, help="Generate empty migration file.")
 @click.pass_context
-@coro
 async def migrate(ctx: Context, name) -> None:
     command = ctx.obj["command"]
     ret = await command.migrate(name)
@@ -101,7 +81,6 @@ async def migrate(ctx: Context, name) -> None:
     help="Make migrations in transaction or not. Can be helpful for large migrations or creating concurrent indexes.",
 )
 @click.pass_context
-@coro
 async def upgrade(ctx: Context, in_transaction: bool) -> None:
     command = ctx.obj["command"]
     migrated = await command.upgrade(run_in_transaction=in_transaction)
@@ -133,7 +112,6 @@ async def upgrade(ctx: Context, in_transaction: bool) -> None:
 @click.confirmation_option(
     prompt="Downgrade is dangerous, which maybe lose your data, are you sure?",
 )
-@coro
 async def downgrade(ctx: Context, version: int, delete: bool) -> None:
     command = ctx.obj["command"]
     try:
@@ -146,7 +124,6 @@ async def downgrade(ctx: Context, version: int, delete: bool) -> None:
 
 @cli.command(help="Show current available heads in migrate location.")
 @click.pass_context
-@coro
 async def heads(ctx: Context) -> None:
     command = ctx.obj["command"]
     head_list = await command.heads()
@@ -158,7 +135,6 @@ async def heads(ctx: Context) -> None:
 
 @cli.command(help="List all migrate items.")
 @click.pass_context
-@coro
 async def history(ctx: Context) -> None:
     command = ctx.obj["command"]
     versions = await command.history()
@@ -189,7 +165,6 @@ async def history(ctx: Context) -> None:
     help="Folder of the source, relative to the project root.",
 )
 @click.pass_context
-@coro
 async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     config_file = ctx.obj["config_file"]
 
@@ -233,7 +208,6 @@ async def init(ctx: Context, tortoise_orm, location, src_folder) -> None:
     show_default=True,
 )
 @click.pass_context
-@coro
 async def init_db(ctx: Context, safe: bool) -> None:
     command = ctx.obj["command"]
     app = command.app
@@ -257,7 +231,6 @@ async def init_db(ctx: Context, safe: bool) -> None:
     required=False,
 )
 @click.pass_context
-@coro
 async def inspectdb(ctx: Context, table: List[str]) -> None:
     command = ctx.obj["command"]
     ret = await command.inspectdb(table)

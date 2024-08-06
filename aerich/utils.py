@@ -6,7 +6,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Dict, Optional, Union
 
-from click import BadOptionUsage, ClickException, Context
+from asyncclick import BadOptionUsage, ClickException, Context
 from tortoise import BaseDBAsyncClient, Tortoise
 
 
