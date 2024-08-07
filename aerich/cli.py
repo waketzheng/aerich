@@ -69,7 +69,7 @@ async def migrate(ctx: Context, name, empty) -> None:
     ret = await command.migrate(name, empty)
     if not ret:
         return click.secho("No changes detected", fg=Color.yellow)
-    click.secho(f"Successfully created migration file {ret}", fg=Color.green)
+    click.secho(f"Success creating migration file {ret}", fg=Color.green)
 
 
 @cli.command(help="Upgrade to specified migration version.")
