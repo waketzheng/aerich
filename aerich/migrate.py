@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
-import click
+import asyncclick as click
 from dictdiffer import diff
 from tortoise import BaseDBAsyncClient, Model, Tortoise
 from tortoise.exceptions import OperationalError
