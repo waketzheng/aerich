@@ -192,7 +192,7 @@ class Migrate:
         ret: list = []
 
         def index_hash(self) -> str:
-            h = hashlib.new("MD5", usedforsecurity=False)
+            h = hashlib.new("MD5", usedforsecurity=False)  # type:ignore[call-arg]
             h.update(
                 self.index_name(cls.ddl.schema_generator, model).encode()
                 + self.__class__.__name__.encode()
