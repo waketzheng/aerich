@@ -37,7 +37,9 @@ async def cli(ctx: Context, config, app) -> None:
     if invoked_subcommand != "init":
         config_path = Path(config)
         if not config_path.exists():
-            raise UsageError("You need to run `aerich init` first to create the config file.", ctx=ctx)
+            raise UsageError(
+                "You need to run `aerich init` first to create the config file.", ctx=ctx
+            )
         content = config_path.read_text()
         doc: dict = tomlkit.parse(content)
         try:
@@ -56,7 +58,9 @@ async def cli(ctx: Context, config, app) -> None:
         ctx.obj["command"] = command
         if invoked_subcommand != "init-db":
             if not Path(location, app).exists():
-                raise UsageError("You need to run `aerich init-db` first to initialize the database.", ctx=ctx)
+                raise UsageError(
+                    "You need to run `aerich init-db` first to initialize the database.", ctx=ctx
+                )
             await command.init()
 
 
