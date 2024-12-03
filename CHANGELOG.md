@@ -7,7 +7,7 @@
 - Correct the click import. (#360)
 - Improve CLI help text and output. (#355)
 - Fix mysql drop unique index raises OperationalError. (#346)
-
+- Fix KeyError when deleting a field with unqiue=True. (#364)
   **Upgrade note:**
     1. Use column name as unique key name for mysql
     2. Drop support for Python3.7

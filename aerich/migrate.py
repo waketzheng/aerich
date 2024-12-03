@@ -425,8 +425,9 @@ class Migrate:
                         upgrade,
                     )
                     if old_data_field["indexed"]:
+                        is_unique_field = old_data_field.get("unique")
                         cls._add_operator(
-                            cls._drop_index(model, {db_column}),
+                            cls._drop_index(model, {db_column}, is_unique_field),
                             upgrade,
                             True,
                         )
@@ -548,13 +549,17 @@ class Migrate:
     def _resolve_fk_fields_name(cls, model: Type[Model], fields_name: Iterable[str]) -> List[str]:
         ret = []
         for field_name in fields_name:
-            field = model._meta.fields_map[field_name]
-            if field.source_field:
-                ret.append(field.source_field)
-            elif field_name in model._meta.fk_fields:
-                ret.append(field_name + "_id")
+            try:
+                field = model._meta.fields_map[field_name]
+            except KeyError:
+                # field dropped or to be add
+                pass
             else:
-                ret.append(field_name)
+                if field.source_field:
+                    field_name = field.source_field
+                elif field_name in model._meta.fk_fields:
+                    field_name += "_id"
+            ret.append(field_name)
         return ret
 
     @classmethod
