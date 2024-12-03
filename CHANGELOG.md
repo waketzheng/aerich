@@ -2,7 +2,7 @@
 
 ## 0.8
 
-### 0.8.0 (unreleased)
+### [0.8.0](../../releases/tag/v0.8.0) - 2024-12-04
 
 - Fix the issue of parameter concatenation when generating ORM with inspectdb (#331)
 - Fix KeyError when deleting a field with unqiue=True. (#364)
