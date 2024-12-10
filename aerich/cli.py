@@ -40,7 +40,7 @@ async def cli(ctx: Context, config, app) -> None:
             raise UsageError(
                 "You need to run `aerich init` first to create the config file.", ctx=ctx
             )
-        content = config_path.read_text()
+        content = config_path.read_text("utf-8")
         doc: dict = tomlkit.parse(content)
         try:
             tool = cast(Dict[str, str], doc["tool"]["aerich"])
