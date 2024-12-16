@@ -5,6 +5,7 @@
 ### [0.8.1](Unreleased)
 
 #### Fixed
+- KeyError raised when removing or renaming an existing model (#386)
 - fix: error when there is `__init__.py` in the migration folder (#272)
 - Setting null=false on m2m field causes migration to fail. (#334)
 - Fix NonExistentKey when running `aerich init` without `[tool]` section in config file. (#284)
