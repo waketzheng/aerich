@@ -5,6 +5,7 @@
 ### [0.8.1](Unreleased)
 
 #### Fixed
+- Migrate drop the wrong m2m field when model have multi m2m fields. (#376)
 - KeyError raised when removing or renaming an existing model (#386)
 - fix: error when there is `__init__.py` in the migration folder (#272)
 - Setting null=false on m2m field causes migration to fail. (#334)
