@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 import tortoise
 from pytest_mock import MockerFixture
+from tortoise.indexes import Index
 
 from aerich.ddl.mysql import MysqlDDL
 from aerich.ddl.postgres import PostgresDDL
@@ -10,6 +11,7 @@ from aerich.ddl.sqlite import SqliteDDL
 from aerich.exceptions import NotSupportError
 from aerich.migrate import MIGRATE_TEMPLATE, Migrate
 from aerich.utils import get_models_describe
+from tests.indexes import CustomIndex
 
 # tortoise-orm>=0.21 changes IntField constraints
 # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648, "le": 2147483647}
@@ -608,7 +610,7 @@ old_models_describe = {
         "description": None,
         "docstring": None,
         "unique_together": [],
-        "indexes": [],
+        "indexes": [Index(fields=("username", "is_active")), CustomIndex(fields=("is_superuser",))],
         "pk_field": {
             "name": "id",
             "field_type": "IntField",

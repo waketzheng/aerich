@@ -3,6 +3,9 @@ import uuid
 from enum import IntEnum
 
 from tortoise import Model, fields
+from tortoise.indexes import Index
+
+from tests.indexes import CustomIndex
 
 
 class ProductType(IntEnum):
@@ -32,6 +35,10 @@ class User(Model):
     longitude = fields.DecimalField(max_digits=10, decimal_places=8)
 
     products: fields.ManyToManyRelation["Product"]
+
+    class Meta:
+        # reverse indexes elements
+        indexes = [CustomIndex(fields=("is_superuser",)), Index(fields=("username", "is_active"))]
 
 
 class Email(Model):

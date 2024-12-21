@@ -1,4 +1,5 @@
-import hashlib
+from __future__ import annotations
+
 import importlib
 import os
 from datetime import datetime
@@ -6,6 +7,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Set, Tuple, Type, Union, cast
 
 import asyncclick as click
+import tortoise
 from dictdiffer import diff
 from tortoise import BaseDBAsyncClient, Model, Tortoise
 from tortoise.exceptions import OperationalError
@@ -202,21 +204,25 @@ class Migrate:
 
     @classmethod
     def _handle_indexes(cls, model: Type[Model], indexes: List[Union[Tuple[str], Index]]) -> list:
-        ret: list = []
+        if tortoise.__version__ > "0.22.2":
+            # The min version of tortoise is '0.11.0', so we can compare it by a `>`,
+            # tortoise>0.22.2 have __eq__/__hash__ with Index class since 313ee76.
+            return indexes
+        if index_classes := set(index.__class__ for index in indexes if isinstance(index, Index)):
+            # Leave magic patch here to compare with older version of tortoise-orm
+            # TODO: limit tortoise>0.22.2 in pyproject.toml and remove this function when v0.9.0 released
+            for index_cls in index_classes:
+                if index_cls(fields=("id",)) != index_cls(fields=("id",)):
 
-        def index_hash(self) -> str:
-            h = hashlib.new("MD5", usedforsecurity=False)  # type:ignore[call-arg]
-            h.update(
-                self.index_name(cls.ddl.schema_generator, model).encode()
-                + self.__class__.__name__.encode()
-            )
-            return h.hexdigest()
+                    def _hash(self) -> int:
+                        return hash((tuple(sorted(self.fields)), self.name, self.expressions))
 
-        for index in indexes:
-            if isinstance(index, Index):
-                index.__hash__ = index_hash  # type:ignore[method-assign,assignment]
-            ret.append(index)
-        return ret
+                    def _eq(self, other) -> bool:
+                        return type(self) is type(other) and self.__dict__ == other.__dict__
+
+                    setattr(index_cls, "__hash__", _hash)
+                    setattr(index_cls, "__eq__", _eq)
+        return indexes
 
     @classmethod
     def _get_indexes(cls, model, model_describe: dict) -> Set[Union[Index, Tuple[str, ...]]]:

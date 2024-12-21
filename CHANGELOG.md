@@ -16,6 +16,7 @@
 - Fix configuration file reading error when containing Chinese characters. (#286)
 - sqlite: failed to create/drop index. (#302)
 - PostgreSQL: Cannot drop constraint after deleting or rename FK on a model. (#378)
+- Fix create/drop indexes in every migration. (#377)
 - Sort m2m fields before comparing them with diff. (#271)
 
 #### Changed
