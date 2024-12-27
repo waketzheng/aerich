@@ -2,7 +2,7 @@
 
 ## 0.8
 
-### [0.8.1]*(Unreleased)*
+### [0.8.1](../../releases/tag/v0.8.1) - 2024-12-27
 
 #### Fixed
 - fix: add o2o field does not create constraint when migrating. ([#396])
