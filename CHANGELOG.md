@@ -5,6 +5,7 @@
 ### [0.8.2]**(Unreleased)**
 
 #### Added
+- feat: support command `python -m aerich`. ([#417])
 - feat: add --fake to upgrade/downgrade. ([#398])
 
 #### Fixed
@@ -18,6 +19,7 @@
 [#401]: https://github.com/tortoise/aerich/pull/401
 [#412]: https://github.com/tortoise/aerich/pull/412
 [#415]: https://github.com/tortoise/aerich/pull/415
+[#417]: https://github.com/tortoise/aerich/pull/417
 
 ### [0.8.1](../../releases/tag/v0.8.1) - 2024-12-27
 

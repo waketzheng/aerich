@@ -1,6 +1,8 @@
 import contextlib
 import os
+import shlex
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -68,3 +70,12 @@ class Dialect:
     def is_sqlite(cls) -> bool:
         cls.load_env()
         return not cls.test_db_url or "sqlite" in cls.test_db_url
+
+
+def run_shell(command: str, capture_output=True, **kw) -> str:
+    r = subprocess.run(shlex.split(command), capture_output=capture_output)
+    if r.returncode != 0 and r.stderr:
+        return r.stderr.decode()
+    if not r.stdout:
+        return ""
+    return r.stdout.decode()
