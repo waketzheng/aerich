@@ -11,6 +11,7 @@
 #### Fixed
 - fix: aerich migrate raises tortoise.exceptions.FieldError when `index.INDEX_TYPE` is not empty. ([#415])
 - fix: inspectdb raise KeyError 'int2' for smallint. ([#401])
+- fix: inspectdb not match data type 'DOUBLE' and 'CHAR' for MySQL. ([#187])
 
 ### Changed
 - Refactored version management to use `importlib.metadata.version(__package__)` instead of hardcoded version string ([#412])
