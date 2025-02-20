@@ -632,7 +632,9 @@ class Migrate:
                     # indexed include it
                     continue
                 # Change unique for indexed field, e.g.: `db_index=True, unique=False` --> `db_index=True, unique=True`
-                # TODO
+                drop_unique = old_new[0] is True and old_new[1] is False
+                for sql in cls.ddl.alter_indexed_column_unique(model, field_name, drop_unique):
+                    cls._add_operator(sql, upgrade, True)
             elif option == "nullable":
                 # change nullable
                 cls._add_operator(cls._alter_null(model, new_data_field), upgrade)

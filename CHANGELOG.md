@@ -10,6 +10,7 @@
 
 #### Fixed
 - fix: aerich migrate raises tortoise.exceptions.FieldError when `index.INDEX_TYPE` is not empty. ([#415])
+- No migration occurs as expected when adding `unique=True` to indexed field. ([#404])
 - fix: inspectdb raise KeyError 'int2' for smallint. ([#401])
 - fix: inspectdb not match data type 'DOUBLE' and 'CHAR' for MySQL. ([#187])
 
@@ -18,6 +19,7 @@
 
 [#398]: https://github.com/tortoise/aerich/pull/398
 [#401]: https://github.com/tortoise/aerich/pull/401
+[#404]: https://github.com/tortoise/aerich/pull/404
 [#412]: https://github.com/tortoise/aerich/pull/412
 [#415]: https://github.com/tortoise/aerich/pull/415
 [#417]: https://github.com/tortoise/aerich/pull/417
