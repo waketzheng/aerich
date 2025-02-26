@@ -43,10 +43,16 @@ jobs:
             ${{ runner.os }}-pip-
       - name: Install and configure Poetry
         run: |
-          pip install -U pip poetry
-          poetry config virtualenvs.create false
+          pip install -U pip
+          if [[ "${{ matrix.python-version }}" == "3.8" ]]; then
+            # poetry2.0+ does not support installed by python3.8, but can manage project using py38
+            python3.12 -m pip install "poetry>=2.0"
+          else
+            pip install "poetry>=2.0"
+          fi
+          poetry env use python${{ matrix.python-version }}
       - name: Install dependencies and check style
-        run: make check
+        run: poetry run make check
       - name: Install TortoiseORM v0.21
         if: matrix.tortoise-orm == 'tortoise021'
         run: poetry run pip install --upgrade "tortoise-orm>=0.21,<0.22"
@@ -81,4 +87,16 @@ jobs:
           POSTGRES_PASS: 123456
           POSTGRES_HOST: 127.0.0.1
           POSTGRES_PORT: 5432
-        run: make _testall
+        run: poetry run make _testall
+      - name: Verify aiomysql support
+        if: matrix.tortoise-orm == 'tortoise024'
+        run: |
+            poetry run pip uninstall -y asyncmy
+            poetry run pip install aiomysql
+            poetry run make test_mysql
+            poetry run pip uninstall -y aiomysql
+            poetry run pip install asyncmy
+        env:
+          MYSQL_PASS: root
+          MYSQL_HOST: 127.0.0.1
+          MYSQL_PORT: 3306
