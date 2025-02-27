@@ -2,7 +2,7 @@
 
 ## 0.8
 
-### [0.8.2]**(Unreleased)**
+### [0.8.2](../../releases/tag/v0.8.2) - 2025-02-28
 
 #### Added
 - Support changes `max_length` or int type for primary key field. ([#428])
