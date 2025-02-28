@@ -14,8 +14,8 @@ deps:
 	@poetry install --all-extras --all-groups
 
 _style:
-	@ruff check --fix $(checkfiles)
 	@ruff format $(checkfiles)
+	@ruff check --fix $(checkfiles)
 style: deps _style
 
 _check:
@@ -24,6 +24,15 @@ _check:
 	@mypy $(checkfiles)
 	@bandit -r aerich
 check: deps _check
+
+_lint:
+	ruff format $(checkfiles)
+	ruff check --fix $(checkfiles)
+	mypy $(checkfiles)
+	bandit -c pyproject.toml -r aerich
+	@poetry build
+	twine check dist/*
+lint: deps _lint
 
 test: deps
 	$(py_warn) TEST_DB=sqlite://:memory: pytest

@@ -259,6 +259,39 @@ class Migrate:
         # TODO: Check whether field includes required fk columns
         pass
 
+    @staticmethod
+    def _exclude_different_create_unique_index_tables(
+        tables: list[str],
+        old_m2m_fields: list[dict],
+        new_m2m_fields: list[dict],
+        create_index: bool,
+        is_change: bool,
+    ):
+        # TODO: remove this function if dictdiffer.diff provides the through table name
+        old_fields = [
+            i for i in old_m2m_fields if i.get("create_unique_index") is (not create_index)
+        ]
+        if old_fields:
+            change_index_tables: list[str] = []
+            new_through_fields = {i.get("through", ""): i for i in new_m2m_fields}
+            old_field_throughs = {i.get("through", ""): i for i in old_fields}
+            old_field_names = {i.get("name", ""): i for i in old_fields}
+            for through_table_name in tables:
+                if through_table_name in old_field_throughs:
+                    if is_change:
+                        change_index_tables.append(through_table_name)
+                    continue
+                new_field = new_through_fields[through_table_name]
+                if new_field.get("name", "") in old_field_names:
+                    if is_change:
+                        change_index_tables.append(through_table_name)
+                    continue
+                if not is_change:
+                    change_index_tables.append(through_table_name)
+            if tables != change_index_tables:
+                tables = change_index_tables
+        return tables
+
     @classmethod
     def _handle_m2m_fields(
         cls, old_model_describe: dict, new_model_describe: dict, model, new_models, upgrade=True
@@ -270,8 +303,56 @@ class Migrate:
             for field in new_models.values()
             if field.get("managed") is not False
         }
+        add_create_unique_index = change_create_unique_index = 0
         for action, option, change in get_dict_diff_by_key(old_m2m_fields, new_m2m_fields):
-            if (option and option[-1] == "nullable") or change[0][0] == "db_constraint":
+            print(f"{action = }; {option = }; {change = }")
+            if (
+                (option and option[-1] == "nullable")
+                or (not isinstance(change[0], bool) and change[0][0] == "db_constraint")
+                or (change == [("create_unique_index", False)] and action in ("add", "remove"))
+            ):
+                continue
+            if change == [("create_unique_index", True)] or (
+                action == "change" and option and option[-1] == "create_unique_index"
+            ):
+                if is_change := action == "change":
+                    create_index = change == (False, True)
+                else:
+                    create_index = True
+                create_unique_index_tables = [
+                    i.get("through", "")
+                    for i in new_m2m_fields
+                    if i.get("create_unique_index") is create_index
+                ]
+                if len(create_unique_index_tables) == 1:
+                    through_table_name = create_unique_index_tables[0]
+                else:
+                    # Multi m2m fields in one model,
+                    #  and more than one of them changed value of "create_unique_index".
+                    # This case is barely, but should be considered.
+                    create_unique_index_tables = cls._exclude_different_create_unique_index_tables(
+                        create_unique_index_tables,
+                        old_m2m_fields,
+                        new_m2m_fields,
+                        create_index,
+                        is_change,
+                    )
+                    through_table_name = create_unique_index_tables[add_create_unique_index]
+                    if is_change:
+                        change_create_unique_index += 1
+                    else:
+                        add_create_unique_index += 1
+                print(f"{through_table_name = }")
+                index_name = ""
+                if create_index:
+                    index_name = "xxx"
+                    unique_index_sql = index_name + ""
+                else:
+                    unique_index_sql = ""
+                # unique_index_create_sql = self._get_unique_index_sql(
+                #     exists, through_table_name, [backward_key, forward_key]
+                # )
+                cls._add_operator(unique_index_sql, upgrade, fk_m2m_index=True)
                 continue
             new_value = change[0][1]
             if isinstance(new_value, str):

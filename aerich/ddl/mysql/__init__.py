@@ -42,13 +42,19 @@ class MysqlDDL(BaseDDL):
     _MODIFY_COLUMN_TEMPLATE = "ALTER TABLE `{table_name}` MODIFY COLUMN {column}"
     _RENAME_TABLE_TEMPLATE = "ALTER TABLE `{old_table_name}` RENAME TO `{new_table_name}`"
 
-    def _index_name(self, unique: bool | None, model: type[Model], field_names: list[str]) -> str:
+    def _index_name(
+        self,
+        unique: bool | None,
+        model: type[Model] | str,
+        field_names: list[str],
+        is_constraint: bool = False,
+    ) -> str:
         if unique and len(field_names) == 1:
             # Example: `email = CharField(max_length=50, unique=True)`
             # Generate schema: `"email" VARCHAR(10) NOT NULL UNIQUE`
             # Unique index key is the same as field name: `email`
             return field_names[0]
-        return super()._index_name(unique, model, field_names)
+        return super()._index_name(unique, model, field_names, is_constraint=is_constraint)
 
     def alter_indexed_column_unique(
         self, model: type[Model], field_name: str, drop: bool = False

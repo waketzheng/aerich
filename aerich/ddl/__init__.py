@@ -181,14 +181,19 @@ class BaseDDL:
             new_column_type=new_column_type,
         )
 
-    def _index_name(self, unique: bool | None, model: type[Model], field_names: list[str]) -> str:
+    def _index_name(
+        self,
+        unique: bool | None,
+        model: type[Model] | str,
+        field_names: list[str],
+        is_constraint: bool = False,
+    ) -> str:
         func_name = "_get_index_name"
         if not hasattr(self.schema_generator, func_name):
             # For tortoise-orm<0.24.1
             func_name = "_generate_index_name"
-        return getattr(self.schema_generator, func_name)(
-            "idx" if not unique else "uid", model, field_names
-        )
+        prefix = "idx" if not unique else ("uid" if is_constraint else "uidx")
+        return getattr(self.schema_generator, func_name)(prefix, model, field_names)
 
     def add_index(
         self,
