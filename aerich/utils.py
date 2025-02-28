@@ -87,6 +87,12 @@ def get_models_describe(app: str) -> dict:
     for model in Tortoise.apps[app].values():
         managed = getattr(model.Meta, "managed", None)
         describe = model.describe()
+        for m2m_field in describe["m2m_fields"]:
+            if m2m_field["_generated"] or "create_unique_index" in m2m_field:
+                continue
+            field_obj = model._meta.fields_map[m2m_field["name"]]
+            if getattr(field_obj, "create_unique_index", False):
+                m2m_field["create_unique_index"] = True
         ret[describe.get("name")] = dict(describe, managed=managed)
     return ret
 
