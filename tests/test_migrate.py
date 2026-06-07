@@ -42,6 +42,118 @@ from tests.tortoise_v1_models_state import MODELS_STATE
 # tortoise-orm>=0.21 changes IntField constraints
 # from {"ge": 1, "le": 2147483647} to {"ge": -2147483648, "le": 2147483647}
 MIN_INT = 1 if tortoise.__version__ < "0.21" else -2147483648
+
+
+def test_mysql_replaces_unique_together_before_dropping_fk_backing_index(monkeypatch):
+    class Field:
+        def __init__(self, source_field=None):
+            self.source_field = source_field
+
+    class Meta:
+        db_table = "tagdata"
+        full_name = "models.TagData"
+        fields_map = {
+            "guild": Field("guild_id"),
+            "user": Field("user_id"),
+            "name": Field(),
+        }
+        fk_fields = {"guild", "user"}
+
+    class TagData:
+        _meta = Meta()
+
+    class SchemaGenerator:
+        @staticmethod
+        def _post_table_hook():
+            return ""
+
+    class DDL:
+        schema_generator = SchemaGenerator()
+
+        @staticmethod
+        def _index_name(unique, model, field_names):
+            prefix = "uid" if unique else "idx"
+            return f"{prefix}_{model._meta.db_table}_{'_'.join(field_names)}"
+
+        def add_index(self, model, field_names, unique=False):
+            index_name = self._index_name(unique, model, field_names)
+            columns = ", ".join(f"`{field}`" for field in field_names)
+            unique_sql = "UNIQUE " if unique else ""
+            return (
+                f"ALTER TABLE `{model._meta.db_table}` "
+                f"ADD {unique_sql}INDEX `{index_name}` ({columns})"
+            )
+
+        @staticmethod
+        def drop_index_by_name(model, index_name):
+            return f"ALTER TABLE `{model._meta.db_table}` DROP INDEX `{index_name}`"
+
+    def data_field(name, field_type="IntField", db_type="INT"):
+        return {
+            "name": name,
+            "field_type": field_type,
+            "db_column": name,
+            "db_field_types": {"": db_type},
+        }
+
+    def fk_field(name):
+        return {
+            "name": name,
+            "field_type": "ForeignKeyFieldInstance",
+            "raw_field": f"{name}_id",
+            "python_type": f"models.{name.title()}",
+            "db_constraint": True,
+            "on_delete": "CASCADE",
+        }
+
+    def model_describe(unique_together):
+        return {
+            "name": "models.TagData",
+            "table": "tagdata",
+            "unique_together": unique_together,
+            "indexes": [],
+            "pk_field": data_field("id"),
+            "data_fields": [
+                data_field("guild_id"),
+                data_field("user_id"),
+                data_field("name", "CharField", "VARCHAR(100)"),
+            ],
+            "fk_fields": [fk_field("guild"), fk_field("user")],
+            "backward_fk_fields": [],
+            "o2o_fields": [],
+            "backward_o2o_fields": [],
+            "m2m_fields": [],
+        }
+
+    monkeypatch.setattr(Migrate, "_get_model", classmethod(lambda cls, name: TagData))
+    Migrate.app = "models"
+    Migrate.dialect = "mysql"
+    monkeypatch.setattr(Migrate, "ddl", DDL())
+
+    old_models = {"models.TagData": model_describe([("guild", "user")])}
+    new_models = {"models.TagData": model_describe([("guild", "name")])}
+    Migrate.diff_models(old_models, new_models)
+    Migrate.diff_models(new_models, old_models, False)
+    Migrate._merge_operators()
+
+    upgrade_add = (
+        "ALTER TABLE `tagdata` ADD UNIQUE INDEX `uid_tagdata_guild_id_name` (`guild_id`, `name`)"
+    )
+    upgrade_drop = "ALTER TABLE `tagdata` DROP INDEX `uid_tagdata_guild_id_user_id`"
+    assert Migrate.upgrade_operators.index(upgrade_add) < Migrate.upgrade_operators.index(
+        upgrade_drop
+    )
+
+    downgrade_add = (
+        "ALTER TABLE `tagdata` ADD UNIQUE INDEX "
+        "`uid_tagdata_guild_id_user_id` (`guild_id`, `user_id`)"
+    )
+    downgrade_drop = "ALTER TABLE `tagdata` DROP INDEX `uid_tagdata_guild_id_name`"
+    assert Migrate.downgrade_operators.index(downgrade_add) < Migrate.downgrade_operators.index(
+        downgrade_drop
+    )
+
+
 OLD_MODELS_DESCRIBE = {
     "models.Category": {
         "name": "models.Category",

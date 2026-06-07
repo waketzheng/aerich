@@ -71,6 +71,8 @@ class Migrate:
     downgrade_operators: list[str] = []
     _upgrade_fk_m2m_index_operators: list[str] = []
     _downgrade_fk_m2m_index_operators: list[str] = []
+    _upgrade_index_drop_after_create_operators: list[str] = []
+    _downgrade_index_drop_after_create_operators: list[str] = []
     _upgrade_m2m: list[str] = []
     _downgrade_m2m: list[str] = []
     _aerich = Aerich.__name__
@@ -411,15 +413,28 @@ class Migrate:
         )
 
     @classmethod
-    def _add_operator(cls, operator: str, upgrade: bool = True, fk_m2m_index: bool = False) -> None:
+    def _add_operator(
+        cls,
+        operator: str,
+        upgrade: bool = True,
+        fk_m2m_index: bool = False,
+        index_drop_after_create: bool = False,
+    ) -> None:
         """
         add operator,differentiate fk because fk is order limit
         :param operator:
         :param upgrade:
         :param fk_m2m_index:
+        :param index_drop_after_create:
         :return:
         """
         operator = operator.rstrip(";")
+        if index_drop_after_create:
+            if upgrade:
+                cls._upgrade_index_drop_after_create_operators.append(operator)
+            else:
+                cls._downgrade_index_drop_after_create_operators.append(operator)
+            return
         if upgrade:
             if fk_m2m_index:
                 cls._upgrade_fk_m2m_index_operators.append(operator)
@@ -463,6 +478,58 @@ class Migrate:
             else:
                 indexes.add(cast("tuple[str, ...]", tuple(x)))
         return indexes
+
+    @staticmethod
+    def _get_describe_field_identifiers(model_describe: dict) -> set[str]:
+        identifiers: set[str] = set()
+        for key in ("pk_field",):
+            if field := model_describe.get(key):
+                identifiers.update(filter(None, (field.get("name"), field.get("db_column"))))
+        for key in ("data_fields", "fk_fields", "o2o_fields"):
+            for field in model_describe.get(key, []):
+                identifiers.update(
+                    filter(
+                        None, (field.get("name"), field.get("db_column"), field.get("raw_field"))
+                    )
+                )
+        return identifiers
+
+    @classmethod
+    def _should_drop_unique_index_after_create(
+        cls,
+        model: type[Model],
+        removed_index: Iterable[str],
+        added_indexes: set[tuple[str, ...]],
+        target_model_describe: dict,
+    ) -> bool:
+        if cls.dialect != "mysql" or not added_indexes:
+            return False
+
+        removed_fields = cls._resolve_fk_fields_name(model, removed_index)
+        if not removed_fields:
+            return False
+
+        fk_columns = {
+            field.get("raw_field")
+            for key in ("fk_fields", "o2o_fields")
+            for field in target_model_describe.get(key, [])
+        }
+        if removed_fields[0] not in fk_columns:
+            return False
+
+        target_fields = cls._get_describe_field_identifiers(target_model_describe)
+        if not set(removed_fields).issubset(target_fields):
+            return False
+
+        for added_index in added_indexes:
+            added_fields = cls._resolve_fk_fields_name(model, added_index)
+            if (
+                added_fields
+                and added_fields[0] == removed_fields[0]
+                and set(added_fields).issubset(target_fields)
+            ):
+                return True
+        return False
 
     @staticmethod
     def _validate_custom_m2m_through(field: dict) -> None:
@@ -759,6 +826,8 @@ class Migrate:
             _new_uniques = cast("list[Iterable[str]]", new_model_describe.get("unique_together"))
             old_unique_together = set(map(lambda x: tuple(x), _old_uniques))
             new_unique_together = set(map(lambda x: tuple(x), _new_uniques))
+            added_unique_together = new_unique_together.difference(old_unique_together)
+            removed_unique_together = old_unique_together.difference(new_unique_together)
             old_indexes = cls._get_indexes(model, old_model_describe)
             new_indexes = cls._get_indexes(model, new_model_describe)
             # pk field
@@ -775,17 +844,27 @@ class Migrate:
                 old_model_describe, new_model_describe, model, new_models, upgrade
             )
             # add unique_together
-            for index in new_unique_together.difference(old_unique_together):
+            for index in added_unique_together:
                 cls._add_operator(cls._add_index(model, index, True), upgrade, True)
             # remove unique_together
-            for index in old_unique_together.difference(new_unique_together):
+            for index in removed_unique_together:
                 index_name = cls._unique_index_name(model, index)
                 if upgrade and cls._is_unique_constraint(model, index_name):
                     cls._add_operator(
                         cls.ddl.drop_unique_constraint(model, index_name), upgrade, True
                     )
                 else:
-                    cls._add_operator(cls.ddl.drop_index_by_name(model, index_name), upgrade, True)
+                    cls._add_operator(
+                        cls.ddl.drop_index_by_name(model, index_name),
+                        upgrade,
+                        True,
+                        index_drop_after_create=cls._should_drop_unique_index_after_create(
+                            model,
+                            index,
+                            added_unique_together,
+                            new_model_describe,
+                        ),
+                    )
             # add indexes
             for idx in new_indexes.difference(old_indexes):
                 cls._add_operator(cls._add_index(model, idx), upgrade, fk_m2m_index=True)
@@ -1235,12 +1314,14 @@ class Migrate:
                             break
             else:
                 cls.upgrade_operators.insert(0, _upgrade_fk_m2m_operator)
+        cls.upgrade_operators.extend(cls._upgrade_index_drop_after_create_operators)
 
         for _downgrade_fk_m2m_operator in cls._downgrade_fk_m2m_index_operators:
             if "ADD" in _downgrade_fk_m2m_operator or "CREATE" in _downgrade_fk_m2m_operator:
                 cls.downgrade_operators.append(_downgrade_fk_m2m_operator)
             else:
                 cls.downgrade_operators.insert(0, _downgrade_fk_m2m_operator)
+        cls.downgrade_operators.extend(cls._downgrade_index_drop_after_create_operators)
 
     @staticmethod
     def secho_warning(msg: str) -> None:
