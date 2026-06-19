@@ -411,12 +411,7 @@ class Migrate:
         )
 
     @classmethod
-    def _add_operator(
-        cls,
-        operator: str,
-        upgrade: bool = True,
-        fk_m2m_index: bool = False,
-    ) -> None:
+    def _add_operator(cls, operator: str, upgrade: bool = True, fk_m2m_index: bool = False) -> None:
         """
         add operator,differentiate fk because fk is order limit
         :param operator:
@@ -867,11 +862,7 @@ class Migrate:
                         cls.ddl.drop_unique_constraint(model, index_name), upgrade, True
                     )
                 else:
-                    cls._add_operator(
-                        cls.ddl.drop_index_by_name(model, index_name),
-                        upgrade,
-                        True,
-                    )
+                    cls._add_operator(cls.ddl.drop_index_by_name(model, index_name), upgrade, True)
             # add indexes
             for idx in new_indexes.difference(old_indexes):
                 cls._add_operator(cls._add_index(model, idx), upgrade, fk_m2m_index=True)

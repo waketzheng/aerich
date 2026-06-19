@@ -46,17 +46,14 @@ TEST_DIR = Path(__file__).parent / "tests"
 
 @pytest.fixture(scope="function", autouse=True)
 def reset_migrate() -> None:
-    for class_state in (
-        Migrate.upgrade_operators,
-        Migrate.downgrade_operators,
-        Migrate._upgrade_fk_m2m_index_operators,
-        Migrate._downgrade_fk_m2m_index_operators,
-        Migrate._upgrade_m2m,
-        Migrate._downgrade_m2m,
-        Migrate._rename_fields,
-        Migrate._rename_models,
-    ):
-        class_state.clear()
+    Migrate.upgrade_operators = []
+    Migrate.downgrade_operators = []
+    Migrate._upgrade_fk_m2m_index_operators = []
+    Migrate._downgrade_fk_m2m_index_operators = []
+    Migrate._upgrade_m2m = []
+    Migrate._downgrade_m2m = []
+    Migrate._rename_fields = {}
+    Migrate._rename_models = {}
 
 
 @pytest.fixture(scope="session")
