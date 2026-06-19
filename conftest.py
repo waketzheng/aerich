@@ -51,8 +51,6 @@ def reset_migrate() -> None:
         Migrate.downgrade_operators,
         Migrate._upgrade_fk_m2m_index_operators,
         Migrate._downgrade_fk_m2m_index_operators,
-        Migrate._upgrade_index_drop_after_create_operators,
-        Migrate._downgrade_index_drop_after_create_operators,
         Migrate._upgrade_m2m,
         Migrate._downgrade_m2m,
         Migrate._rename_fields,

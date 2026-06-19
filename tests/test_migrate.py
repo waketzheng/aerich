@@ -140,18 +140,18 @@ def test_mysql_replaces_unique_together_before_dropping_fk_backing_index(monkeyp
         "ALTER TABLE `tagdata` ADD UNIQUE INDEX `uid_tagdata_guild_id_name` (`guild_id`, `name`)"
     )
     upgrade_drop = "ALTER TABLE `tagdata` DROP INDEX `uid_tagdata_guild_id_user_id`"
-    assert Migrate.upgrade_operators.index(upgrade_add) < Migrate.upgrade_operators.index(
-        upgrade_drop
-    )
+    upgrade_sql = ";\n".join(Migrate.upgrade_operators)
+    assert upgrade_sql.find(upgrade_add) != -1
+    assert upgrade_sql.find(upgrade_add) < upgrade_sql.find(upgrade_drop)
 
     downgrade_add = (
         "ALTER TABLE `tagdata` ADD UNIQUE INDEX "
         "`uid_tagdata_guild_id_user_id` (`guild_id`, `user_id`)"
     )
     downgrade_drop = "ALTER TABLE `tagdata` DROP INDEX `uid_tagdata_guild_id_name`"
-    assert Migrate.downgrade_operators.index(downgrade_add) < Migrate.downgrade_operators.index(
-        downgrade_drop
-    )
+    downgrade_sql = ";\n".join(Migrate.downgrade_operators)
+    assert downgrade_sql.find(downgrade_add) != -1
+    assert downgrade_sql.find(downgrade_add) < downgrade_sql.find(downgrade_drop)
 
 
 OLD_MODELS_DESCRIBE = {
