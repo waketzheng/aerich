@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import base64
 import contextlib
+import functools
 import importlib
 import importlib.machinery
 import importlib.util
+import logging
 import os
 import pkgutil
 import re
 import sys
 import zlib
-from collections.abc import Awaitable, Callable, Generator
+from collections.abc import Awaitable, Callable, Generator, Sequence
+from contextlib import AbstractAsyncContextManager
 from importlib.machinery import FileFinder
 from pathlib import Path
 from types import ModuleType
-from typing import Any, TypeVar, cast
+from typing import Any, Literal, TypeVar, cast
 
 from anyio import from_thread
 from asyncclick import BadOptionUsage, ClickException, Context
@@ -27,9 +30,9 @@ from aerich.coder import decoder, encoder
 from aerich.exceptions import NotInitedError
 
 if sys.version_info >= (3, 11):
-    from typing import ParamSpec, TypeVarTuple, Unpack
+    from typing import ParamSpec, Self, TypeVarTuple, Unpack
 else:
-    from typing_extensions import ParamSpec, TypeVarTuple, Unpack
+    from typing_extensions import ParamSpec, Self, TypeVarTuple, Unpack
 
 T_Retval = TypeVar("T_Retval")
 PosArgsT = TypeVarTuple("PosArgsT")
@@ -368,14 +371,77 @@ def decompress_dict(compressed_str: str) -> dict[str, Any]:
     return dictionary
 
 
+class ConnectionContext(AbstractAsyncContextManager):
+    def __init__(self, tortoise_config: dict | None = None) -> None:
+        if tortoise_config is None:
+            tortoise_config = load_tortoise_config()
+        self.tortoise_config = tortoise_config
+
+    async def init(self) -> None:
+        await Tortoise.init(config=self.tortoise_config)
+
+    async def __aenter__(self) -> Self:
+        if not is_tortoise_inited():
+            await self.init()
+        return self
+
+    def __await__(self) -> Generator[Any, None, Self]:
+        # To support `command = await Command(tortoise_config)`
+        async def _self() -> Self:
+            return await self.__aenter__()
+
+        return _self().__await__()
+
+    @staticmethod
+    async def aclose() -> None:
+        """Close tortoise connections if it was inited"""
+        if is_tortoise_inited():
+            await Tortoise.close_connections()
+
+    async def __aexit__(self, *args, **kw) -> None:
+        await self.aclose()
+
+
 def run_async(
     async_func: Callable[[Unpack[PosArgsT]], Awaitable[T_Retval]],
     *args: Unpack[PosArgsT],
+    db_url: str | Literal["sqlite://:memory:", ""] | None = None,
+    models: Sequence[str] | None = None,
+    generate_schemas: bool = True,
+    verbose: bool = False,
 ) -> T_Retval:
     """Run async function in worker thread and get the result of it"""
+    if verbose and not logger.isEnabledFor(logging.DEBUG):
+        fmt = logging.Formatter(
+            fmt="%(asctime)s - %(name)s:%(lineno)d - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        sh = logging.StreamHandler(sys.stdout)
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(fmt)
+
+        # will print debug sql
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(sh)
+
+    if db_url is not None:
+
+        async def f() -> T_Retval:
+            url = db_url if "://" in db_url else ("sqlite://" + (db_url or ":memory:"))
+            config = {
+                "connections": {"default": url},
+                "apps": {"models": {"models": models or ["__main__"]}},
+            }
+            async with ConnectionContext(config):
+                if generate_schemas:
+                    await Tortoise.generate_schemas()
+                return await async_func(*args)
+    else:
+        f = functools.partial(async_func, *args)  # type:ignore
+
     # `asyncio.run(async_func())` can get the result of async function,
     # but it will close the running loop.
     with from_thread.start_blocking_portal() as portal:
-        future = portal.start_task_soon(async_func, *args)
+        future = portal.start_task_soon(f)
         return_value = future.result()
     return return_value

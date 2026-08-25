@@ -157,6 +157,10 @@ include = ["aerich/_compat.py"]
 unresolved-import = "ignore"
 deprecated = "ignore"
 unused-type-ignore-comment = "ignore"
+[[tool.ty.overrides]]
+include = ["aerich/utils.py"]
+[tool.ty.overrides.rules]
+unused-type-ignore-comment = "ignore"
 
 [tool.pyright]
 reportMissingImports = false

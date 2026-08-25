@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import pkgutil
 import warnings
-from collections.abc import Generator
-from contextlib import AbstractAsyncContextManager
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, cast, overload
+from typing import TYPE_CHECKING, Literal, cast, overload
 
 import asyncclick as click
 from tortoise import BaseDBAsyncClient, Tortoise
@@ -13,7 +11,7 @@ from tortoise.exceptions import OperationalError
 from tortoise.transactions import in_transaction
 from tortoise.utils import generate_schema_for_client, get_schema_sql
 
-from aerich._compat import _init_asyncio_patch, is_tortoise_inited
+from aerich._compat import _init_asyncio_patch
 from aerich.exceptions import DowngradeError, NotInitedError
 from aerich.inspectdb.mysql import InspectMySQL
 from aerich.inspectdb.postgres import InspectPostgres
@@ -21,6 +19,7 @@ from aerich.inspectdb.sqlite import InspectSQLite
 from aerich.migrate import Migrate
 from aerich.models import Aerich
 from aerich.utils import (
+    ConnectionContext,
     decompress_dict,
     file_module_info,
     get_app_connection,
@@ -28,7 +27,6 @@ from aerich.utils import (
     get_models_describe,
     import_py_file,
     import_py_module,
-    load_tortoise_config,
     py_module_path,
 )
 from aerich.version import __version__
@@ -44,36 +42,15 @@ _init_asyncio_patch()  # Change event_loop_policy for Windows
 __all__ = ("Command", "TortoiseContext", "__version__")
 
 
-class TortoiseContext(AbstractAsyncContextManager):
+class TortoiseContext(ConnectionContext):
     def __init__(self, tortoise_config: dict | None = None) -> None:
-        if tortoise_config is None:
-            tortoise_config = load_tortoise_config()
-        self.tortoise_config = tortoise_config
+        super().__init__(tortoise_config)
         self._init_when_aenter = True
-
-    async def init(self) -> None:
-        await Tortoise.init(config=self.tortoise_config)
 
     async def __aenter__(self) -> Self:
         if self._init_when_aenter:
             await self.init()
         return self
-
-    def __await__(self) -> Generator[Any, None, Self]:
-        # To support `command = await Command(tortoise_config)`
-        async def _self() -> Self:
-            return await self.__aenter__()
-
-        return _self().__await__()
-
-    @staticmethod
-    async def aclose() -> None:
-        """Close tortoise connections if it was inited"""
-        if is_tortoise_inited():
-            await Tortoise.close_connections()
-
-    async def __aexit__(self, *args, **kw) -> None:
-        await self.aclose()
 
 
 class Command(TortoiseContext):
